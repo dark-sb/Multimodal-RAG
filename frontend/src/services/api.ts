@@ -10,7 +10,45 @@ import {
   SystemStatus,
 } from '../types';
 
-const API_BASE = '/api';
+export const LOCAL_BACKEND_URL = 'http://127.0.0.1:8000';
+export const CLOUD_BACKEND_URL = 'https://multimodal-rag-e371.onrender.com';
+
+export function getBackendUrl(): string {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('rag_backend_url');
+    if (saved) return saved.replace(/\/+$/, '');
+
+    // If running deployed (e.g. on Vercel), default to the cloud backend on Render
+    const hostname = window.location.hostname;
+    if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      return (import.meta.env.VITE_BACKEND_URL || CLOUD_BACKEND_URL).replace(/\/+$/, '');
+    }
+  }
+  const envUrl = (import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || '').trim();
+  return (envUrl || LOCAL_BACKEND_URL).replace(/\/+$/, '');
+}
+
+export function setBackendUrl(url: string) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('rag_backend_url', url.replace(/\/+$/, ''));
+  }
+}
+
+export function getBackendOrigin(): string {
+  return getBackendUrl().replace(/\/api\/?$/, '');
+}
+
+export function getApiBase(): string {
+  const base = getBackendUrl();
+  return base.endsWith('/api') ? base : `${base}/api`;
+}
+
+export function resolveMediaUrl(path?: string | null): string {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  const origin = getBackendOrigin();
+  return `${origin}${path.startsWith('/') ? '' : '/'}${path}`;
+}
 
 class ApiError extends Error {
   status: number;
@@ -21,7 +59,7 @@ class ApiError extends Error {
 }
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const url = `${API_BASE}${endpoint}`;
+  const url = `${getApiBase()}${endpoint}`;
   const response = await fetch(url, {
     ...options,
     headers: {
@@ -47,6 +85,12 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 }
 
 export const api = {
+  resolveMediaUrl,
+  getBackendUrl,
+  setBackendUrl,
+  LOCAL_BACKEND_URL,
+  CLOUD_BACKEND_URL,
+
   // Health & System
   async getHealth(): Promise<{ status: string; service: string; version: string }> {
     return request('/health');
@@ -66,11 +110,22 @@ export const api = {
   },
 
   async getDocumentDetails(documentId: string): Promise<DocumentDetail> {
-    return request(`/documents/${documentId}`);
+    const detail = await request<DocumentDetail>(`/documents/${documentId}`);
+    if (detail && Array.isArray(detail.pages)) {
+      detail.pages = detail.pages.map((p) => ({
+        ...p,
+        image_url: p.image_url ? resolveMediaUrl(p.image_url) : undefined,
+      }));
+    }
+    return detail;
   },
 
   async getPageInfo(documentId: string, pageNumber: number): Promise<DocumentPage> {
-    return request(`/documents/${documentId}/pages/${pageNumber}`);
+    const page = await request<DocumentPage>(`/documents/${documentId}/pages/${pageNumber}`);
+    if (page && page.image_url) {
+      page.image_url = resolveMediaUrl(page.image_url);
+    }
+    return page;
   },
 
   async uploadDocuments(files: File[]): Promise<{ uploaded: DocumentItem[]; errors: { filename: string; error: string }[] }> {
@@ -79,7 +134,7 @@ export const api = {
       formData.append('files', file);
     });
 
-    const response = await fetch(`${API_BASE}/documents/upload`, {
+    const response = await fetch(`${getApiBase()}/documents/upload`, {
       method: 'POST',
       body: formData,
     });
@@ -117,11 +172,18 @@ export const api = {
     grounding_status: string;
     created_at: string;
   }> {
-    return request('/chat', {
+    const res = await request<any>('/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
+    if (res && Array.isArray(res.citations)) {
+      res.citations = res.citations.map((c: any) => ({
+        ...c,
+        image_url: c.image_url ? resolveMediaUrl(c.image_url) : undefined,
+      }));
+    }
+    return res;
   },
 
   async getConversations(): Promise<Conversation[]> {

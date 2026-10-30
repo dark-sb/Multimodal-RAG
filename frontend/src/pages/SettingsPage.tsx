@@ -20,6 +20,7 @@ import { useToast } from '../context/ToastContext';
 export const SettingsPage: React.FC = () => {
   const [status, setStatus] = useState<SystemStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeBackend, setActiveBackend] = useState<string>(api.getBackendUrl());
   const { showToast } = useToast();
 
   const fetchStatus = async () => {
@@ -32,6 +33,13 @@ export const SettingsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSwitchBackend = (url: string) => {
+    api.setBackendUrl(url);
+    setActiveBackend(url);
+    showToast(`Switched API endpoint to ${url}`, 'info');
+    fetchStatus();
   };
 
   useEffect(() => {
@@ -57,6 +65,64 @@ export const SettingsPage: React.FC = () => {
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
         </button>
+      </div>
+
+      {/* Connected Backend Indicator */}
+      <div className="p-4 rounded-2xl bg-sky-50/70 dark:bg-sky-950/30 border border-sky-100 dark:border-sky-900/50 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-sky-100 dark:bg-sky-900/60 text-sky-600 dark:text-sky-400">
+            <Server className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="font-semibold text-slate-800 dark:text-slate-200">
+              Connected Backend API Server
+            </div>
+            <a
+              href={activeBackend}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono text-[11px] text-sky-600 dark:text-sky-400 hover:underline flex items-center gap-1 mt-0.5"
+            >
+              {activeBackend}
+            </a>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Quick Backend Switch Buttons */}
+          <div className="inline-flex rounded-xl bg-white dark:bg-slate-900 p-1 border border-slate-200 dark:border-slate-800">
+            <button
+              onClick={() => handleSwitchBackend(api.LOCAL_BACKEND_URL)}
+              className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                activeBackend.includes('127.0.0.1') || activeBackend.includes('localhost')
+                  ? 'bg-sky-600 text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              Local (8000)
+            </button>
+            <button
+              onClick={() => handleSwitchBackend(api.CLOUD_BACKEND_URL)}
+              className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                activeBackend.includes('onrender.com')
+                  ? 'bg-sky-600 text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              Render Cloud
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 pl-2">
+            <span className="flex h-2 w-2 relative">
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${status ? 'bg-emerald-400' : 'bg-amber-400'} opacity-75`}></span>
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${status ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+            </span>
+            <span className={`font-medium ${status ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>
+              {status ? 'Online & Synchronized' : 'Connecting...'}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Main Settings Grid */}

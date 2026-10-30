@@ -38,8 +38,18 @@ class Settings(BaseSettings):
     GEMINI_MODEL: str = "gemini-1.5-flash"
     OPENAI_MODEL: str = "gpt-4o-mini"
     
+    # Backend & Frontend deployed URLs
+    BACKEND_URL: str = "https://multimodal-rag-e371.onrender.com"
+    FRONTEND_URL: str = "https://multimodal-rag-web.vercel.app"
+    
     # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"]
+    CORS_ORIGINS: List[str] = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "https://multimodal-rag-web.vercel.app",
+        "https://multimodal-rag-e371.onrender.com"
+    ]
     
     model_config = SettingsConfigDict(
         env_file=str(BASE_DIR / ".env"),

@@ -510,7 +510,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ initialDocId, onNavigateToVi
                 {cit.image_url && (
                   <div className="w-full h-24 bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700/60 flex items-center justify-center">
                     <img
-                      src={cit.image_url}
+                      src={api.resolveMediaUrl(cit.image_url)}
                       alt={`Page ${cit.page_number} evidence`}
                       className="w-full h-full object-cover"
                       loading="lazy"

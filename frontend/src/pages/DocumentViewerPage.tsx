@@ -262,7 +262,7 @@ export const DocumentViewerPage: React.FC<DocumentViewerPageProps> = ({
                 <div className="w-full h-28 bg-slate-200 dark:bg-slate-800 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700/60 flex items-center justify-center">
                   {p.image_url ? (
                     <img
-                      src={p.image_url}
+                      src={api.resolveMediaUrl(p.image_url)}
                       alt={`Thumbnail page ${p.page_number}`}
                       className="w-full h-full object-cover"
                       loading="lazy"
@@ -298,7 +298,7 @@ export const DocumentViewerPage: React.FC<DocumentViewerPageProps> = ({
                       style={{ width: `${(800 * zoomLevel) / 100}px` }}
                     >
                       <img
-                        src={currentPage.image_url}
+                        src={api.resolveMediaUrl(currentPage.image_url)}
                         alt={`Page ${currentPageNum}`}
                         className="w-full h-auto block"
                       />
